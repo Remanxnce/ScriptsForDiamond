@@ -5,7 +5,7 @@
       "description": "Scripts that revolve around players. Dying, leaving, and rejoining.",
       "min_engine_version": [1, 19, 80],
       "uuid": "f2cb13e8-45c5-4ff3-934a-6d76196ed47f",
-      "version": [1, 0, 8]
+      "version": [1, 1, 0]
     },
     "modules": [
       {

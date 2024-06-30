@@ -2,10 +2,10 @@
     "format_version": 2,
     "header": {
       "name": "Admin Menu Created by (THE BOSS9345)",
-      "description": "A simple admin menu for server owners to use",
+      "description": "A modified version of THE BOSS9345's admin menu for Diamond KitPvP.",
       "min_engine_version": [1, 20, 10],
       "uuid": "e909a063-0d7f-4d77-9c13-d6ad9a04d339",
-      "version": [1, 2, 0]
+      "version": [1, 2, 5]
     },
     "modules": [
       {

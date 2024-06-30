@@ -204,9 +204,22 @@ system.runInterval(() => {
             reason: "Breaking Rules",
             banner: "Server\nContact Wyattclan5575 to discuss ban appeals."
         });
+    } else if (getScore('cps',player.name) > 20 && (player.name=="AG Remanxnce")==false && (player.name=="Wyattclan5575")==false){
+        var offense = 7;
+        const timer = (offense === times.length - 1) ? null : setTimer(parseInt(times[offense].replace(' Days', '')), 'days');
+        player.runCommandAsync(`scoreboard players set @s cps 0`)
+        player.runCommandAsync(`tellraw @a {"rawtext":[{"text":"§l§7${player.name}§f has been banned permanently for Autoclicking!"}]}`)
+        Database.set(`Banned:${player.name}`, {//grabbed in ban function
+            target: player.name,
+            targetId: player.id,
+            time: timer,
+            reason: "Autoclicking",
+            banner: "Server\nContact Wyattclan5575 to discuss ban appeals."
+        });
     } else if ((player.getTags()).includes("cheater")){
         var offense = 7;
         const timer = (offense === times.length - 1) ? null : setTimer(parseInt(times[offense].replace(' Days', '')), 'days');
+        player.runCommandAsync(`tag @s remove cheater`);
         player.runCommandAsync(`tellraw @a {"rawtext":[{"text":"§l§7${player.name}§f has been banned permanently for Cheating!"}]}`)
         Database.set(`Banned:${player.name}`, {//grabbed in ban function
             target: player.name,

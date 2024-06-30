@@ -3,6 +3,7 @@ import { world, system } from "@minecraft/server";
 const CombatDatabase = {};//list used to hold player names that are in combat
 
 world.afterEvents.entityHurt.subscribe((event) => {
+    console.warn(`${event.hurtEntity.name} was hit`);
     const getScore = (objective, target, useZero = true) => {
         try {
             const obj = world.scoreboard.getObjective(objective);
@@ -16,14 +17,62 @@ world.afterEvents.entityHurt.subscribe((event) => {
     }
     event.hurtEntity.runCommandAsync(`scoreboard players operation "bounty of ${event.hurtEntity.name}" bounty = @s bounty`)
     if (getScore('inpvp', event.hurtEntity.name)==1){
-    if (event.damageSource.cause !== "entityAttack") return;//ignores any non-player damage
-    CombatDatabase[event.hurtEntity.id] = { timer: setTimer(10, 'seconds') };//assigns the timer for 10 seconds
-    event.hurtEntity.runCommandAsync(`execute if entity @s [scores={incombat=0}] run tellraw @s {"rawtext":[{"text":"§cYou are now in combat"}]}`)
-    event.hurtEntity.addTag('incombat');//marks the player who's been hit
-    event.hurtEntity.runCommandAsync(`scoreboard players set @a [tag=incombat] incombat 1`)
-}})//specifies that it's only tagging players
+        if (getScore(`inkos`,event.hurtEntity.name)==0){
+            if (event.damageSource.cause !== "entityAttack") return;
+                if (getScore(`geartier`,event.hurtEntity.name) > getScore(`geartier`,event.damageSource.damagingEntity.name)){
+                    //fair right, undergeared vs overgeared
+                    if (event.hurtEntity.hasTag(`undering` || event.damageSource.damagingEntity.hasTag(`undering`))) return
+                    CombatDatabase[event.hurtEntity.id] = { timer: setTimer(20, 'seconds') };
+                    CombatDatabase[event.damageSource.damagingEntity.id] = { timer: setTimer(20, 'seconds') };
+                    event.hurtEntity.runCommandAsync(`execute if entity @s [scores={incombat=0}] run tellraw @s {"rawtext":[{"text":"§cYou are now in combat!"}]}`);
+                    event.hurtEntity.addTag('incombat');
+                    event.hurtEntity.addTag(`fairfight`);
+                    event.damageSource.damagingEntity.runCommandAsync(`execute if entity @s [scores={incombat=0}] run tellraw @s {"rawtext":[{"text":"§cYou have initiated combat fairly!"}]}`);
+                    event.damageSource.damagingEntity.addTag('incombat');
+                    event.damageSource.damagingEntity.addTag(`fairfight`)
+                    event.hurtEntity.runCommandAsync(`scoreboard players set @a [tag=incombat] incombat 1`)
+                }else if (getScore(`geartier`,event.hurtEntity.name) < getScore(`geartier`,event.damageSource.damagingEntity.name)){
+                        if (getScore(`geartier`,event.damageSource.damagingEntity.name)==6)return;
+                    //unfair right, out of kos and overgeared vs undergeared
+                        if (event.hurtEntity.hasTag(`fairfight` || event.damageSource.damagingEntity.hasTag(`fairfight`))) return
+                    CombatDatabase[event.damageSource.damagingEntity.id] = { timer: setTimer(20, 'seconds') };
+                    event.damageSource.damagingEntity.runCommandAsync(`execute if entity @s [scores={incombat=0}] run tellraw @s {"rawtext":[{"text":"§cYou have initiated combat unfairly!§l Killing this player will result in a warn!"}]}`);
+                    event.hurtEntity.runCommandAsync(`execute if entity @s [scores={incombat=0}] run tellraw @s [scores={incombat=0}] {"rawtext":[{"text":"§eA player has initiated combat against you unfairly!§l You may combat log."}]}`);
+                    event.damageSource.damagingEntity.addTag('incombat');
+                    event.damageSource.damagingEntity.addTag(`undering`);
+                    event.hurtEntity.addTag(`being undered`);
+                    event.hurtEntity.runCommandAsync(`scoreboard players set @a [tag=incombat] incombat 1`);
+                }else if (getScore('geartier',event.hurtEntity.name) == getScore(`geartier`,event.damageSource.damagingEntity.name)){
+                    //fair fight, both players are equal
+                    CombatDatabase[event.hurtEntity.id] = { timer: setTimer(20, 'seconds') };
+                    CombatDatabase[event.damageSource.damagingEntity.id] = { timer: setTimer(20, 'seconds') };
+                    event.hurtEntity.runCommandAsync(`execute if entity @s [scores={incombat=0}] run tellraw @s {"rawtext":[{"text":"§cYou are now in combat!"}]}`);
+                    event.damageSource.damagingEntity.runCommandAsync(`execute if entity @s [scores={incombat=0}] run tellraw @s {"rawtext":[{"text":"§cYou have initiated combat fairly!"}]}`);
+                    event.damageSource.damagingEntity.addTag('incombat');
+                    event.hurtEntity.addTag('incombat');
+                    event.hurtEntity.runCommandAsync(`scoreboard players set @a [tag=incombat] incombat 1`)
+                }
+    }}})
 
 system.runInterval(() => {
+    world.getPlayers().forEach((player) => {
+        const playerequippable = player.getComponent('equippable');
+        const items = ['Chest', 'Feet', 'Head', 'Legs', 'Mainhand'].map((slot) => playerequippable.getEquipment(slot)).filter(Boolean);
+        //console.warn(items.map((item) => item.typeId).join(', '))
+        if (items.map((item) => item.typeId).join(', ').includes("netherite")){
+            player.runCommandAsync(`scoreboard players set @s geartier 5`);
+        }else if (items.map((item) => item.typeId).join(', ').includes("diamond")){
+            player.runCommandAsync(`scoreboard players set @s geartier 4`);
+        }else if (items.map((item) => item.typeId).join(', ').includes("iron")){
+            player.runCommandAsync(`scoreboard players set @s geartier 3`);
+        }else if (items.map((item) => item.typeId).join(', ').includes("chainmail")|| (items.map((item) => item.typeId).join(', ').includes("stone"))){
+            player.runCommandAsync(`scoreboard players set @s geartier 2`);
+        }else if (items.map((item) => item.typeId).join(', ').includes("leather")|| (items.map((item) => item.typeId).join(', ').includes("wooden_sword"))){
+            player.runCommandAsync(`scoreboard players set @s geartier 1`);
+        }else{
+            player.runCommandAsync(`scoreboard players set @s geartier 6`);
+        }
+    })
     //I'm assuming runs when a player is hit?
     world.getPlayers({ tag: 'incombat' }).map((player) => {//creates list of players who are in combat
         if (!CombatDatabase[player.id]) return delete CombatDatabase[player.id], player.removeTag('incombat')//removes the tag from the player if they're not on the list. used to find C-logging
@@ -34,6 +83,8 @@ system.runInterval(() => {
             player.runCommandAsync('execute if entity @s [scores={inpvp=1}] run tellraw @s {"rawtext":[{"text":"§aYou Are Now Out Of Combat"}]}')//notifies the player they're no longer in combat
             player.removeTag('incombat')//removes the tag from the player
             player.runCommandAsync(`scoreboard players set @s incombat 0`)
+            player.removeTag('undering');
+            player.removeTag(`being undered`);
             return
         }
         //happens if the player leaves before the combat logout time
@@ -52,6 +103,12 @@ world.afterEvents.playerLeave.subscribe(({ playerId, playerName }) => {
 })
 
 world.afterEvents.playerSpawn.subscribe((event) => {
+    console.warn("player has respawned");
+    event.player.removeTag('undering');
+    event.player.removeTag('being undered');
+    event.player.removeTag('incombat');
+    event.player.runCommandAsync(`scoreboard players set @s incombat 0`);
+    event.player.removeTag('fairfight');
     //happens when a player loads into the game
     if (!event.initialSpawn) return//ignores if it's the players first time logging in? not sure
     if (!CombatDatabase[event.player.id]?.clear) return;//ignores if they're not marked to be cleared
@@ -59,13 +116,27 @@ world.afterEvents.playerSpawn.subscribe((event) => {
     event.player.runCommandAsync('clear @s')//clears the player who combat logged
     event.player.runCommandAsync(`scoreboard players set @s incombat 0`)
     event.player.runCommandAsync(`scoreboard players add @s warns 1`)
-    event.player.sendMessage('§cYour inventory Was Cleared For Combat logging!');//notifies the player they combat logged
+    event.player.sendMessage('§cYour inventory Was Cleared For Combat logging! In addition, you were also warned!');//notifies the player they combat logged
 })
 
 world.afterEvents.entityDie.subscribe(({ damageSource, deadEntity }) => {
-    //happens when a player has died
+    if (damageSource.damagingEntity.hasTag('undering') && deadEntity.hasTag('being undered')){
+        damageSource.damagingEntity.sendMessage("§l§cYou have been warned for underarmor killing!");
+        damageSource.damagingEntity.runCommandAsync(`scoreboard players add @s warns 1`);
+        damageSource.damagingEntity.removeTag(`incombat`);
+        damageSource.damagingEntity.removeTag('undering');
+        damageSource.damagingEntity.removeTag('fairfight');
+        deadEntity.removeTag(`being undered`);
+        deadEntity.removeTag(`incombat`)
+    }
+    CombatDatabase[damageSource.damagingEntity.id] = { timer: setTimer(0, 'seconds') };
     if (!CombatDatabase[deadEntity.id]) return;//ignores if they're already not in the database
-    delete CombatDatabase[deadEntity.id]//removes the player's name from the database
+    CombatDatabase[deadEntity.id] = { timer: setTimer(0, 'seconds') };
+    
+    
+    
+        
+    console.warn("player has died");
 }, { entityTypes: ["minecraft:player"] })//checks for just players
 
 export const setTimer = (value, unit) => {
