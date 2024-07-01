@@ -22,6 +22,7 @@ world.afterEvents.entityHurt.subscribe((event) => {
                 if (getScore(`geartier`,event.hurtEntity.name) > getScore(`geartier`,event.damageSource.damagingEntity.name)){
                     //fair right, undergeared vs overgeared
                     if (event.hurtEntity.hasTag(`undering` || event.damageSource.damagingEntity.hasTag(`undering`))) return
+                    if (event.hurtEntity.hasTag(`fairfight` || event.damageSource.damagingEntity.hasTag(`fairfight`))) return
                     CombatDatabase[event.hurtEntity.id] = { timer: setTimer(20, 'seconds') };
                     CombatDatabase[event.damageSource.damagingEntity.id] = { timer: setTimer(20, 'seconds') };
                     event.hurtEntity.runCommandAsync(`execute if entity @s [scores={incombat=0}] run tellraw @s {"rawtext":[{"text":"§cYou are now in combat!"}]}`);
@@ -32,9 +33,8 @@ world.afterEvents.entityHurt.subscribe((event) => {
                     event.damageSource.damagingEntity.addTag(`fairfight`)
                     event.hurtEntity.runCommandAsync(`scoreboard players set @a [tag=incombat] incombat 1`)
                 }else if (getScore(`geartier`,event.hurtEntity.name) < getScore(`geartier`,event.damageSource.damagingEntity.name)){
-                        if (getScore(`geartier`,event.damageSource.damagingEntity.name)==6)return;
+                    if (getScore(`geartier`,event.damageSource.damagingEntity)==6)return;
                     //unfair right, out of kos and overgeared vs undergeared
-                        if (event.hurtEntity.hasTag(`fairfight` || event.damageSource.damagingEntity.hasTag(`fairfight`))) return
                     CombatDatabase[event.damageSource.damagingEntity.id] = { timer: setTimer(20, 'seconds') };
                     event.damageSource.damagingEntity.runCommandAsync(`execute if entity @s [scores={incombat=0}] run tellraw @s {"rawtext":[{"text":"§cYou have initiated combat unfairly!§l Killing this player will result in a warn!"}]}`);
                     event.hurtEntity.runCommandAsync(`execute if entity @s [scores={incombat=0}] run tellraw @s [scores={incombat=0}] {"rawtext":[{"text":"§eA player has initiated combat against you unfairly!§l You may combat log."}]}`);
@@ -44,12 +44,16 @@ world.afterEvents.entityHurt.subscribe((event) => {
                     event.hurtEntity.runCommandAsync(`scoreboard players set @a [tag=incombat] incombat 1`);
                 }else if (getScore('geartier',event.hurtEntity.name) == getScore(`geartier`,event.damageSource.damagingEntity.name)){
                     //fair fight, both players are equal
+                    if (event.hurtEntity.hasTag(`fairfight` || event.damageSource.damagingEntity.hasTag(`fairfight`))) return
+                    if (event.hurtEntity.hasTag(`undering` || event.damageSource.damagingEntity.hasTag(`undering`))) return
                     CombatDatabase[event.hurtEntity.id] = { timer: setTimer(20, 'seconds') };
                     CombatDatabase[event.damageSource.damagingEntity.id] = { timer: setTimer(20, 'seconds') };
                     event.hurtEntity.runCommandAsync(`execute if entity @s [scores={incombat=0}] run tellraw @s {"rawtext":[{"text":"§cYou are now in combat!"}]}`);
                     event.damageSource.damagingEntity.runCommandAsync(`execute if entity @s [scores={incombat=0}] run tellraw @s {"rawtext":[{"text":"§cYou have initiated combat fairly!"}]}`);
                     event.damageSource.damagingEntity.addTag('incombat');
                     event.hurtEntity.addTag('incombat');
+                    event.hurtEntity.addTag(`fairfight`);
+                    event.damageSource.damagingEntity.addTag(`fairfight`)
                     event.hurtEntity.runCommandAsync(`scoreboard players set @a [tag=incombat] incombat 1`)
                 }
     }}})
@@ -63,7 +67,7 @@ system.runInterval(() => {
             player.runCommandAsync(`scoreboard players set @s geartier 5`);
         }else if (items.map((item) => item.typeId).join(', ').includes("diamond")){
             player.runCommandAsync(`scoreboard players set @s geartier 4`);
-        }else if (items.map((item) => item.typeId).join(', ').includes("iron")){
+        }else if (items.map((item) => item.typeId).join(', ').includes("iron") || (items.map((item) => item.typeId).join(', ').includes("mace"))){
             player.runCommandAsync(`scoreboard players set @s geartier 3`);
         }else if (items.map((item) => item.typeId).join(', ').includes("chainmail")|| (items.map((item) => item.typeId).join(', ').includes("stone"))){
             player.runCommandAsync(`scoreboard players set @s geartier 2`);
